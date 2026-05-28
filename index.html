@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Do Sports - Sync Stock ML</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .header { margin-bottom: 28px; }
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+    .header h1 { font-size: 20px; color: #1a1a2e; font-weight: 600; }
+    .header p { font-size: 13px; color: #888; margin-top: 4px; }
+
+    .drop-zone {
+      border: 2px dashed #dde1e7;
+      border-radius: 14px;
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+    }
+    .drop-zone:hover { border-color: #1D9E75; background: #f0faf7; }
+    .drop-zone.has-file { border-style: solid; border-color: #1D9E75; background: #f0faf7; }
+    .drop-zone i { font-size: 36px; color: #bbb; margin-bottom: 12px; display: block; }
+    .drop-zone.has-file i { color: #1D9E75; }
+    .drop-zone .dz-title { font-size: 15px; color: #333; font-weight: 500; margin-bottom: 4px; }
+    .drop-zone.has-file .dz-title { color: #0F6E56; }
+    .drop-zone .dz-sub { font-size: 13px; color: #aaa; }
+    .drop-zone.has-file .dz-sub { color: #1D9E75; }
+    #file-input { display: none; }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-bottom: 20px;
+    }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-primary:not(:disabled):hover { opacity: 0.88; }
+    .btn-primary:not(:disabled):active { transform: scale(0.98); }
+    .btn-secondary {
+      background: transparent;
+      border: 1.5px solid #dde1e7;
+      color: #666;
+      font-size: 14px;
+      padding: 11px;
+      margin-bottom: 0;
+    }
+    .btn-secondary:hover { background: #f5f5f5; }
+
+    .progress-wrap { margin-bottom: 20px; display: none; }
+    .progress-bg { height: 5px; background: #eee; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .progress-fill { height: 100%; background: #1D9E75; border-radius: 3px; transition: width 0.4s ease; }
+    .progress-label { font-size: 13px; color: #888; text-align: center; }
+
+    .results { display: none; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+    .stat-card { border-radius: 12px; padding: 14px 10px; text-align: center; }
+    .stat-ok { background: #edfaf4; }
+    .stat-warn { background: #fff8e6; }
+    .stat-err { background: #fef0f0; }
+    .stat-nochange { background: #f0f4ff; }
+    .stat-num { font-size: 28px; font-weight: 600; line-height: 1; margin-bottom: 4px; }
+    .stat-ok .stat-num { color: #0a6648; }
+    .stat-warn .stat-num { color: #9a6200; }
+    .stat-err .stat-num { color: #c0392b; }
+    .stat-nochange .stat-num { color: #3a5bd9; }
+    .stat-label { font-size: 11px; color: #888; font-weight: 500; }
+
+    .result-list {
+      border: 1px solid #eee;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .result-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 13px;
+      gap: 8px;
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-sku { font-weight: 600; font-family: monospace; font-size: 12px; min-width: 85px; color: #333; }
+    .result-detail { color: #aaa; font-size: 12px; flex: 1; }
+    .pill {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .pill-ok { background: #edfaf4; color: #0a6648; }
+    .pill-warn { background: #fff8e6; color: #9a6200; }
+    .pill-err { background: #fef0f0; color: #c0392b; }
+    .pill-nochange { background: #f0f4ff; color: #3a5bd9; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: #fef0f0;
+      border: 1px solid #f5c6c6;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #c0392b;
+      margin-bottom: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <span class="badge">DO SPORTS</span>
+    <h1>Sincronizar Stock</h1>
+    <p>Empretienda → MercadoLibre</p>
+  </div>
+
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <i class="fa-regular fa-file-excel" id="dz-icon"></i>
+    <p class="dz-title" id="dz-title">Seleccioná el Excel de Empretienda</p>
+    <p class="dz-sub" id="dz-sub">Tocá para elegir el archivo .xlsx</p>
+  </div>
+  <input type="file" id="file-input" accept=".xlsx,.xls">
+
+  <div class="error-box" id="error-box"></div>
+
+  <button class="btn btn-primary" id="btn-sync" disabled onclick="startSync()">
+    <i class="fa-solid fa-rotate"></i>
+    Sincronizar stock
+  </button>
+
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-bg"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <p class="progress-label" id="progress-label">Procesando...</p>
+  </div>
+
+  <div class="results" id="results">
+    <div class="stat-grid">
+      <div class="stat-card stat-ok">
+        <div class="stat-num" id="s-ok">0</div>
+        <div class="stat-label">Actualizados</div>
+      </div>
+      <div class="stat-card stat-nochange">
+        <div class="stat-num" id="s-nc">0</div>
+        <div class="stat-label">Sin cambios</div>
+      </div>
+      <div class="stat-card stat-warn">
+        <div class="stat-num" id="s-warn">0</div>
+        <div class="stat-label">Sin publi ML</div>
+      </div>
+    </div>
+
+    <div class="result-list" id="result-list"></div>
+
+    <button class="btn btn-secondary" onclick="resetApp()">
+      <i class="fa-solid fa-arrow-left"></i> Nueva sincronización
+    </button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const API_URL = "https://dosports-sync.onrender.com";
+let selectedFile = null;
+
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) setFile(e.target.files[0]);
+});
+
+function setFile(file) {
+  selectedFile = file;
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('has-file');
+  document.getElementById('dz-icon').className = 'fa-solid fa-circle-check';
+  document.getElementById('dz-title').textContent = file.name;
+  document.getElementById('dz-sub').textContent = (file.size / 1024).toFixed(0) + ' KB · listo para sincronizar';
+  document.getElementById('btn-sync').disabled = false;
+  document.getElementById('error-box').style.display = 'none';
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = label;
+}
+
+async function startSync() {
+  if (!selectedFile) return;
+
+  document.getElementById('btn-sync').innerHTML = '<div class="spinner"></div> Sincronizando...';
+  document.getElementById('btn-sync').disabled = true;
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('error-box').style.display = 'none';
+
+  setProgress(20, 'Enviando archivo...');
+
+  try {
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    setProgress(50, 'Consultando MercadoLibre...');
+
+    const resp = await fetch(API_URL + '/sync', { method: 'POST', body: formData });
+
+    if (!resp.ok) throw new Error(`Error del servidor: ${resp.status}`);
+
+    setProgress(90, 'Procesando resultados...');
+    const data = await resp.json();
+    setProgress(100, 'Listo');
+
+    setTimeout(() => showResults(data), 300);
+
+  } catch (err) {
+    document.getElementById('progress-wrap').style.display = 'none';
+    document.getElementById('btn-sync').innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar stock';
+    document.getElementById('btn-sync').disabled = false;
+    const eb = document.getElementById('error-box');
+    eb.textContent = 'Error: ' + err.message;
+    eb.style.display = 'block';
+  }
+}
+
+function showResults(data) {
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+
+  const s = data.summary;
+  document.getElementById('s-ok').textContent   = s.actualizados;
+  document.getElementById('s-nc').textContent   = s.sin_cambios;
+  document.getElementById('s-warn').textContent = s.sin_publi_ml;
+
+  const list = document.getElementById('result-list');
+  list.innerHTML = data.results.map(r => {
+    let pill, detail;
+    if (r.status === 'ok') {
+      pill = '<span class="pill pill-ok">✓ Actualizado</span>';
+      detail = r.stock_anterior !== undefined ? `${r.stock_anterior} → ${r.stock} u.` : `${r.stock} u.`;
+    } else if (r.status === 'no_change') {
+      pill = '<span class="pill pill-nochange">Sin cambios</span>';
+      detail = `${r.stock} u.`;
+    } else if (r.status === 'not_found') {
+      pill = '<span class="pill pill-warn">Sin publi ML</span>';
+      detail = '';
+    } else {
+      pill = '<span class="pill pill-err">Error</span>';
+      detail = '';
+    }
+    return `<div class="result-row">
+      <span class="result-sku">${r.sku}</span>
+      <span class="result-detail">${detail}</span>
+      ${pill}
+    </div>`;
+  }).join('');
+}
+
+function resetApp() {
+  selectedFile = null;
+  document.getElementById('drop-zone').classList.remove('has-file');
+  document.getElementById('dz-icon').className = 'fa-regular fa-file-excel';
+  document.getElementById('dz-title').textContent = 'Seleccioná el Excel de Empretienda';
+  document.getElementById('dz-sub').textContent = 'Tocá para elegir el archivo .xlsx';
+  document.getElementById('btn-sync').innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar stock';
+  document.getElementById('btn-sync').disabled = true;
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('error-box').style.display = 'none';
+  document.getElementById('file-input').value = '';
+}
+</script>
+</body>
+</html>
