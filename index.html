@@ -264,6 +264,8 @@ async function startSync() {
     setProgress(100, 'Listo');
 
     setTimeout(() => showResults(result), 300);
+    document.getElementById('btn-sync').innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar stock';
+    document.getElementById('btn-sync').disabled = false;
 
   } catch (err) {
     document.getElementById('progress-wrap').style.display = 'none';
