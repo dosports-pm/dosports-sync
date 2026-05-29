@@ -1,12 +1,10 @@
 """
 Backend - Sincronizador Do Sports
+Recibe JSON con SKUs y stocks (procesado en el frontend)
 """
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import pandas as pd
 import requests
-import json
-import io
 import os
 
 app = Flask(__name__)
@@ -101,21 +99,21 @@ def sync():
         response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
         return response
 
-    if "file" not in request.files:
-        return jsonify({"error": "No se recibió archivo"}), 400
+    # Recibe JSON: { "items": [{"sku": "SOGA00", "stock": 3}, ...] }
+    data = request.get_json()
+    if not data or "items" not in data:
+        return jsonify({"error": "Formato incorrecto. Se esperaba {items: [{sku, stock}]}"}), 400
 
-    file = request.files["file"]
-    df = pd.read_excel(io.BytesIO(file.read()))
-    df.columns = df.columns.str.strip()
-
-    df = df[df["SKU"].notna() & (df["SKU"].astype(str).str.strip() != "")]
-    df["SKU"]   = df["SKU"].astype(str).str.strip()
-    df["Stock"] = pd.to_numeric(df["Stock"], errors="coerce").fillna(0).astype(int)
-    stock_map   = df.groupby("SKU")["Stock"].sum().to_dict()
-
+    items = data["items"]
     resultados = []
 
-    for sku, stock in stock_map.items():
+    for item in items:
+        sku   = str(item.get("sku", "")).strip()
+        stock = int(item.get("stock", 0))
+
+        if not sku:
+            continue
+
         item_id = buscar_item_por_sku(sku)
 
         if not item_id:
