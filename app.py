@@ -10,13 +10,12 @@ import io
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins="*")
 
 CLIENT_ID     = "631781074725639"
 CLIENT_SECRET = "a0AZOaipgt4Pbgn2myD1LRlQLg6IVuag"
 USER_ID       = "525698506"
 
-# Tokens en memoria (se renuevan solos)
 _tokens = {
     "access_token":  os.environ.get("ACCESS_TOKEN", ""),
     "refresh_token": os.environ.get("REFRESH_TOKEN", "")
@@ -93,8 +92,15 @@ def index():
     return "Do Sports Sync API OK"
 
 
-@app.route("/sync", methods=["POST"])
+@app.route("/sync", methods=["POST", "OPTIONS"])
 def sync():
+    if request.method == "OPTIONS":
+        response = jsonify({})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "*")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        return response
+
     if "file" not in request.files:
         return jsonify({"error": "No se recibió archivo"}), 400
 
@@ -102,7 +108,6 @@ def sync():
     df = pd.read_excel(io.BytesIO(file.read()))
     df.columns = df.columns.str.strip()
 
-    # Construir dict SKU → stock
     df = df[df["SKU"].notna() & (df["SKU"].astype(str).str.strip() != "")]
     df["SKU"]   = df["SKU"].astype(str).str.strip()
     df["Stock"] = pd.to_numeric(df["Stock"], errors="coerce").fillna(0).astype(int)
@@ -132,18 +137,13 @@ def sync():
             resultados.append({"sku": sku, "status": "error", "stock": stock,
                                 "ml_id": item_id, "error": str(error)})
 
-    ok_count      = sum(1 for r in resultados if r["status"] == "ok")
-    nochange_count = sum(1 for r in resultados if r["status"] == "no_change")
-    warn_count    = sum(1 for r in resultados if r["status"] == "not_found")
-    err_count     = sum(1 for r in resultados if r["status"] == "error")
-
     return jsonify({
-        "results":   resultados,
+        "results": resultados,
         "summary": {
-            "actualizados": ok_count,
-            "sin_cambios":  nochange_count,
-            "sin_publi_ml": warn_count,
-            "errores":      err_count,
+            "actualizados": sum(1 for r in resultados if r["status"] == "ok"),
+            "sin_cambios":  sum(1 for r in resultados if r["status"] == "no_change"),
+            "sin_publi_ml": sum(1 for r in resultados if r["status"] == "not_found"),
+            "errores":      sum(1 for r in resultados if r["status"] == "error"),
         }
     })
 
